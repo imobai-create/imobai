@@ -1,48 +1,54 @@
+import { NextResponse } from "next/server";
+import pool from "@/lib/db";
 
-
-import { NextRequest, NextResponse } from 'next/server';
-
-type Params = {
-  params: Promise<{ dealId: string }>;
+type Ctx = {
+  params: {
+    dealId: string;
+  };
 };
 
-export async function GET(_: NextRequest, { params }: Params) {
+export async function GET(_: Request, ctx: Ctx) {
+  const { dealId } = ctx.params;
+  const numericDealId = Number(dealId);
+
+  if (!Number.isFinite(numericDealId)) {
+    return NextResponse.json({ error: "Invalid dealId" }, { status: 400 });
+  }
+
   try {
-    const { dealId } = await params;
+    const res = await pool.query(
+      `
+      SELECT
+        id,
+        property_id,
+        token_reference,
+        trust_score,
+        risk_level,
+        network,
+        contract_hash,
+        created_at
+      FROM trust_token
+      WHERE deal_id = $1
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+      `,
+      [numericDealId]
+    );
 
-    const res = await fetch(`http://localhost:3000/trust-token/${dealId}`, {
-      cache: 'no-store',
-    });
+    if (res.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Trust token not found" },
+        { status: 404 }
+      );
+    }
 
-    const data = await res.json();
-
-    return NextResponse.json(data, { status: res.status });
+    return NextResponse.json(res.rows[0]);
   } catch (error) {
-    console.error('Erro ao buscar trust token:', error);
+    console.error("Error fetching trust token:", error);
     return NextResponse.json(
-      { error: 'Erro interno ao buscar trust token' },
-      { status: 500 },
+      { error: "Internal server error" },
+      { status: 500 }
     );
   }
 }
 
-export async function POST(_: NextRequest, { params }: Params) {
-  try {
-    const { dealId } = await params;
-
-    const res = await fetch(`http://localhost:3000/trust-token/issue/${dealId}`, {
-      method: 'POST',
-      cache: 'no-store',
-    });
-
-    const data = await res.json();
-
-    return NextResponse.json(data, { status: res.status });
-  } catch (error) {
-    console.error('Erro ao emitir trust token:', error);
-    return NextResponse.json(
-      { error: 'Erro interno ao emitir trust token' },
-      { status: 500 },
-    );
-  }
-}
