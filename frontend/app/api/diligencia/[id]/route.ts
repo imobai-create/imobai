@@ -1,13 +1,13 @@
 
+
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-type Params = {
-  params: Promise<{ id: string }>;
-};
-
-export async function GET(req: Request, context: Params) {
-  const { id } = await context.params;
+export async function GET(
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
   const diligenciaId = Number(id);
 
   if (!Number.isFinite(diligenciaId)) {
@@ -20,15 +20,29 @@ export async function GET(req: Request, context: Params) {
       SELECT *
       FROM diligencias
       WHERE id = $1
+      LIMIT 1
       `,
       [diligenciaId]
     );
 
-    return NextResponse.json(res.rows[0] || null);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "database error" }, { status: 500 });
+    if (res.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Diligencia not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(res.rows[0]);
+  } catch (error) {
+    console.error("Error fetching diligencia:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+
+
+
 
 
