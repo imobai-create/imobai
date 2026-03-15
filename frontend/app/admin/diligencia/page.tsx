@@ -1,7 +1,9 @@
 
 import pool from "@/lib/db"
+export const dynamic = "force-dynamic";
 
 export default async function AdminDiligencias() {
+
 
   const res = await pool.query(`
     SELECT d.id, d.tipo, d.status, p.title
