@@ -4,7 +4,7 @@ import pool from "@/lib/db"
 export default async function AdminDiligencias() {
 
   const res = await pool.query(`
-    SELECT d.id, d.tipo, d.status, d.detalhes, p.title
+    SELECT d.id, d.tipo, d.status, p.title
     FROM diligencias d
     JOIN property p ON p.id = d.property_id
     ORDER BY d.id DESC
