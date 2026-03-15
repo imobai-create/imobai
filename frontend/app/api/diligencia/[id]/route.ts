@@ -5,10 +5,10 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET(
-  request: Request,
-  context: { params: { id: string } }
+  _: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await params;
   const diligenciaId = Number(id);
 
   if (!Number.isFinite(diligenciaId)) {
@@ -42,8 +42,4 @@ export async function GET(
     );
   }
 }
-
-
-
-
 
