@@ -1,13 +1,14 @@
 
 
+
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET(
-  _: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  context: { params: { id: string } }
 ) {
-  const { id } = await params;
+  const { id } = context.params;
   const diligenciaId = Number(id);
 
   if (!Number.isFinite(diligenciaId)) {
