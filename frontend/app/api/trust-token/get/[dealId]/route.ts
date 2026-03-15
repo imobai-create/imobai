@@ -1,38 +1,60 @@
+import { NextResponse } from "next/server";
+import pool from "@/lib/db";
 
-import { NextResponse } from 'next/server'
-import pool from '../../../../../lib/db'
+type Ctx = {
+  params: Promise<{
+    dealId: string;
+  }>;
+};
 
-export async function GET(
-  req: Request,
-  { params }: { params: { dealId: string } }
-) {
+export async function GET(_: Request, ctx: Ctx) {
+  const { dealId } = await ctx.params;
+  const numericDealId = Number(dealId);
+
+  if (!Number.isFinite(numericDealId)) {
+    return NextResponse.json({ error: "Invalid dealId" }, { status: 400 });
+  }
+
   try {
-    const dealId = Number(params.dealId)
-
     const res = await pool.query(
       `
-      SELECT *
+      SELECT
+        id,
+        property_id,
+        deal_id,
+        token_reference,
+        trust_score,
+        risk_level,
+        network,
+        contract_hash,
+        created_at
       FROM trust_token
       WHERE deal_id = $1
+      ORDER BY created_at DESC, id DESC
       LIMIT 1
       `,
-      [dealId]
-    )
+      [numericDealId]
+    );
 
     if (res.rows.length === 0) {
-      return NextResponse.json({ token: null })
+      return NextResponse.json(
+        { error: "Trust token not found" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(res.rows[0])
+    return NextResponse.json(res.rows[0]);
   } catch (error) {
-    console.error(error)
-
+    console.error("Error fetching trust token:", error);
     return NextResponse.json(
-      { error: 'Erro ao buscar Trust Token' },
+      { error: "Internal server error" },
       { status: 500 }
-    )
+    );
   }
 }
+
+
+
 
 
 

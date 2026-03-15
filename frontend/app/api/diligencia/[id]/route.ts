@@ -1,27 +1,52 @@
 
-import { NextResponse } from "next/server"
-import pool from "@/lib/db"
+import { NextResponse } from "next/server";
+import pool from "@/lib/db";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+type Ctx = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
-  const propertyId = Number(params.id)
+export async function GET(_: Request, ctx: Ctx) {
+  const { id } = await ctx.params;
+  const propertyId = Number(id);
 
   if (!Number.isFinite(propertyId)) {
-    return NextResponse.json({ error: "ID inválido" }, { status: 400 })
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  const res = await pool.query(
-    `
-    SELECT tipo, status, detalhes, impacto_score
-    FROM diligencias
-    WHERE property_id = $1
-    `,
-    [propertyId]
-  )
+  try {
+    const res = await pool.query(
+      `
+      SELECT
+        id,
+        property_id,
+        status,
+        notes,
+        created_at,
+        updated_at
+      FROM diligencia
+      WHERE property_id = $1
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+      `,
+      [propertyId]
+    );
 
-  return NextResponse.json(res.rows)
+    if (res.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Diligencia not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(res.rows[0]);
+  } catch (error) {
+    console.error("Error fetching diligencia:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
-

@@ -1,14 +1,15 @@
+
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 type Ctx = {
-  params: {
+  params: Promise<{
     dealId: string;
-  };
+  }>;
 };
 
 export async function GET(_: Request, ctx: Ctx) {
-  const { dealId } = ctx.params;
+  const { dealId } = await ctx.params;
   const numericDealId = Number(dealId);
 
   if (!Number.isFinite(numericDealId)) {
@@ -51,4 +52,10 @@ export async function GET(_: Request, ctx: Ctx) {
     );
   }
 }
+
+
+
+
+
+
 

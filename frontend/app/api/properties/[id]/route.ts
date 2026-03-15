@@ -1,43 +1,54 @@
 
+
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-type Ctx = { params: Promise<{ id: string }> };
+type Ctx = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
 export async function GET(_: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const propertyId = Number(id);
+
   if (!Number.isFinite(propertyId)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
   try {
     const propertyRes = await pool.query(
-      `SELECT
-        id, title, description, price, address, "userId", image, "createdAt", "updatedAt", status_diligencia
+      `
+      SELECT *
       FROM property
       WHERE id = $1
-      LIMIT 1`,
+      LIMIT 1
+      `,
       [propertyId]
     );
 
-    if (propertyRes.rowCount === 0) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (propertyRes.rows.length === 0) {
+      return NextResponse.json({ error: "Property not found" }, { status: 404 });
     }
 
     const imagesRes = await pool.query(
-      `SELECT id, url, "createdAt"
-       FROM property_image
-       WHERE "propertyId" = $1
-       ORDER BY id ASC`,
+      `
+      SELECT *
+      FROM property_image
+      WHERE property_id = $1
+      ORDER BY id ASC
+      `,
       [propertyId]
     );
 
     const videosRes = await pool.query(
-      `SELECT id, url, "createdAt"
-       FROM property_video
-       WHERE "propertyId" = $1
-       ORDER BY id ASC`,
+      `
+      SELECT *
+      FROM property_video
+      WHERE property_id = $1
+      ORDER BY id ASC
+      `,
       [propertyId]
     );
 
@@ -46,7 +57,12 @@ export async function GET(_: Request, ctx: Ctx) {
       images: imagesRes.rows,
       videos: videosRes.rows,
     });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+  } catch (error) {
+    console.error("Error fetching property:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+

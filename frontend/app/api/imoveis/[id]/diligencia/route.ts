@@ -1,45 +1,54 @@
-import { NextResponse } from "next/server"
-import  pool  from "@/lib/db"
 
-type Params = { params: { id: string } }
 
-const ALLOWED = new Set(["APROVADO", "REPROVADO", "PENDENTE"])
+import { NextResponse } from "next/server";
+import pool from "@/lib/db";
 
-export async function PATCH(req: Request, { params }: Params) {
+type Ctx = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export async function PATCH(req: Request, ctx: Ctx) {
+  const { id } = await ctx.params;
+  const propertyId = Number(id);
+
+  if (!Number.isFinite(propertyId)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
   try {
-    const id = Number(params.id)
-    if (!id) return NextResponse.json({ error: "ID inválido" }, { status: 400 })
+    const body = await req.json();
+    const { status, notes } = body;
 
-    const body = await req.json()
-    const { status_diligencia } = body
-
-    if (!status_diligencia || !ALLOWED.has(status_diligencia)) {
-      return NextResponse.json(
-        { error: "status_diligencia inválido (APROVADO | REPROVADO | PENDENTE)" },
-        { status: 400 }
-      )
-    }
-
-    const result = await pool.query(
+    const res = await pool.query(
       `
-      UPDATE property
-      SET status_diligencia = $1, "updatedAt" = NOW()
-      WHERE id = $2
-      RETURNING
-        id, title, description, price, address, image, "userId",
-        status_diligencia, "createdAt", "updatedAt"
+      UPDATE diligencia
+      SET
+        status = $1,
+        notes = $2,
+        updated_at = now()
+      WHERE property_id = $3
+      RETURNING *
       `,
-      [status_diligencia, id]
-    )
+      [status, notes, propertyId]
+    );
 
-    if (result.rowCount === 0) {
-      return NextResponse.json({ error: "Imóvel não encontrado" }, { status: 404 })
+    if (res.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Diligencia not found" },
+        { status: 404 }
+      );
     }
 
-    const updated = result.rows[0]
-    return NextResponse.json({ ...updated, url: updated.image }, { status: 200 })
+    return NextResponse.json(res.rows[0]);
   } catch (error) {
-    console.error("PATCH /api/imoveis/[id]/diligencia:", error)
-    return NextResponse.json({ error: "Erro ao atualizar diligência" }, { status: 500 })
+    console.error("Error updating diligencia:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+
+
