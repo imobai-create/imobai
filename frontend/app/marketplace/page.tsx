@@ -60,6 +60,8 @@ export default async function MarketplacePage() {
   console.log(res.rows)
 
   const imoveis = res.rows;
+console.log("MARKETPLACE_ROWS =", res.rows);
+console.log("MARKETPLACE_COUNT =", res.rows.length);
 
   return (
     <main
