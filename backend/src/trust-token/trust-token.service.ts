@@ -4,13 +4,12 @@ import { Pool } from 'pg';
 
 @Injectable()
 export class TrustTokenService {
-  private pool = new Pool({
-    host: 'localhost',
-    port: 5432,
-    user: 'postgres',
-    password: 'postgres',
-    database: 'imobai_db',
-  });
+ private pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes('neon.tech')
+    ? { rejectUnauthorized: false }
+    : false,
+});
 
   async issueTrustToken(dealId: number) {
     const existingToken = await this.pool.query(
