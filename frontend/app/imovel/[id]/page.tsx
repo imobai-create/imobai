@@ -1,61 +1,86 @@
 import Link from "next/link";
+import pool from "@/lib/db";
 import InterestButton from "@/app/components/InterestButton";
 import TrustPanel from "@/app/components/TrustPanel";
 import TrustAnalysisCard from '@/app/components/TrustAnalysisCard';
 import TrustBadge from "@/app/components/TrustBadge";
 import ViewCertificateButton from "@/app/components/ViewCertificateButton";
 
-type Property = {
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+type ImovelRow = {
   id: number;
   title: string;
-  description: string;
-  price: number;
+  description: string | null;
+  price: number | string;
   address: string;
-  userId: number;
+  city: string | null;
   image: string | null;
-  status_diligencia: string;
-  url?: string | null;
+  status_diligencia: string | null;
+  score: number | null;
+  risk_level: string | null;
+  userId?: number | null;
 };
 
-function brl(value: number) {
+function formatPrice(value: number | string) {
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num)) return "Preço sob consulta";
+
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value);
+    maximumFractionDigits: 2,
+  }).format(num);
 }
 
-export default async function ImovelPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function ImovelPage({ params }: PageProps) {
   const { id } = await params;
-  const propertyId = Number(id);
+  const imovelId = Number(id);
 
-  if (!Number.isFinite(propertyId)) {
+  if (!Number.isFinite(imovelId)) {
     return (
-      <main style={{ minHeight: "100vh", background: "#f3f4f6", padding: 32 }}>
-        <h1 style={{ fontSize: 34, fontWeight: 700 }}>ID inválido</h1>
-        <Link href="/marketplace">Voltar</Link>
-
-      </main>
-    );
-  }
-  const res = await fetch(`http://localhost:3001/api/imoveis/${propertyId}`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    return (
-      <main style={{ minHeight: "100vh", background: "#f3f4f6", padding: 32 }}>
-        <h1 style={{ fontSize: 34, fontWeight: 700 }}>Imóvel não encontrado</h1>
-        <Link href="/marketplace">Voltar</Link>
+      <main style={{ padding: 40 }}>
+        <h1>ID inválido</h1>
       </main>
     );
   }
 
-  const imovel = (await res.json()) as Property;
-  const imageSrc = imovel.image ? `/uploads/${imovel.image}` : null;
+  const res = await pool.query<ImovelRow>(
+    `
+    SELECT
+      id,
+      title,
+      description,
+      price,
+      address,
+      city,
+      image,
+      status_diligencia,
+      score,
+      risk_level
+    FROM property
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [imovelId]
+  );
+
+  if (res.rows.length === 0) {
+    return (
+      <main style={{ padding: 40 }}>
+        <h1>Imóvel não encontrado</h1>
+      </main>
+    );
+  }
+
+  const imovel = res.rows[0];
+
+const propertyId = imovel.id;
+const imageSrc =
+  imovel.image && String(imovel.image).trim() !== ""
+    ? String(imovel.image)
+    : "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
 
   return (
     <main style={{ minHeight: "100vh", background: "#f3f4f6", color: "#111827" }}>
@@ -211,15 +236,18 @@ export default async function ImovelPage({
                   marginTop: 6,
                 }}
               >
-                {brl(Number(imovel.price || 0))}
-              </div>
+                
 
-              <div style={{ marginTop: 18 }}>
-                <InterestButton
-                  propertyId={imovel.id}
-                  ownerId={imovel.userId}
-                  price={Number(imovel.price || 0)}
-                />
+{formatPrice(Number(imovel.price || 0))}
+
+<InterestButton
+  propertyId={imovel.id}
+  ownerId={Number(imovel.userId || 0)}
+  price={Number(imovel.price || 0)}
+/>
+
+
+
               </div>
 
               <Link
