@@ -1,5 +1,7 @@
 import Link from "next/link";
 import pool from "@/lib/db";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type ImovelRow = {
   id: number;
