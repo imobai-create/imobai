@@ -1,4 +1,11 @@
+
+
+
+
+
+
 import Link from "next/link";
+import React from "react";
 
 export default function HomePage() {
   return (
@@ -11,6 +18,7 @@ export default function HomePage() {
             alignItems: "center",
             gap: 20,
             padding: "10px 0 24px",
+            flexWrap: "wrap",
           }}
         >
           <div>
@@ -20,7 +28,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             <a href="#como-funciona" style={navLink}>Como funciona</a>
             <a href="#seguranca" style={navLink}>Segurança</a>
             <a href="#planos" style={navLink}>Planos</a>
@@ -280,5 +288,4 @@ const linkArrow: React.CSSProperties = {
   textDecoration: "none",
   fontWeight: 600,
 };
-
 
