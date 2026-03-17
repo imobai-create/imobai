@@ -1,6 +1,3 @@
-
-
-
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -12,7 +9,11 @@ type Props = {
   price: number;
 };
 
-export default function InterestButton({ propertyId, ownerId, price }: Props) {
+export default function InterestButton({
+  propertyId,
+  ownerId,
+  price,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +21,7 @@ export default function InterestButton({ propertyId, ownerId, price }: Props) {
     try {
       setLoading(true);
 
-      const res = await fetch("/api/deals", {
+      const res = await fetch("/api/deals/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,14 +36,14 @@ export default function InterestButton({ propertyId, ownerId, price }: Props) {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!res.ok || !data.dealId) {
         alert(`Erro ao abrir negociação: ${JSON.stringify(data)}`);
         return;
       }
 
       router.push(`/negociacao/${data.dealId}`);
     } catch (error) {
-      alert("Erro ao abrir negociação.");
+      alert("Erro ao abrir negociação");
       console.error(error);
     } finally {
       setLoading(false);
