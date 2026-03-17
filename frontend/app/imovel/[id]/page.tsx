@@ -242,12 +242,9 @@ const imageSrc =
 
 <InterestButton
   propertyId={imovel.id}
-  ownerId={Number(imovel.userId || 0)}
+  ownerId={1}
   price={Number(imovel.price || 0)}
 />
-
-
-
               </div>
 
               <Link
