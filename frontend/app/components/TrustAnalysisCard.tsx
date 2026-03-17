@@ -30,7 +30,7 @@ export default async function TrustAnalysisCard({ propertyId }: Props) {
 
   try {
     const res = await fetch(
-      `http://localhost:3000/trust-ai/property/${propertyId}/latest`,
+      `/trust-ai/property/${propertyId}/latest`,
       { cache: 'no-store' }
     );
 

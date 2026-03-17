@@ -86,7 +86,7 @@ export default async function NegociacaoPage({ params }: PageProps) {
   try {
     // const res = await fetch(...)
     const trustTokenRes = await fetch(
-      `http://localhost:3001/api/trust-token/${dealId}`,
+      `/api/trust-token/${dealId}`,
       { cache: 'no-store' }
     );
 
