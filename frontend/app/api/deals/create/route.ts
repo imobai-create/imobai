@@ -22,9 +22,10 @@ export async function POST(req: Request) {
 
     // Ajuste o nome da tabela aqui se no seu banco ela for "deals" e não "deal".
     
+
 const { rows } = await pool.query<{ id: number }>(
   `
-    INSERT INTO deal ("propertyId", "buyerId", "sellerId", price, status)
+    INSERT INTO deal (property_id, buyer_user_id, seller_user_id, price, status)
     VALUES ($1, $2, $3, $4, 'OPEN')
     RETURNING id
   `,
