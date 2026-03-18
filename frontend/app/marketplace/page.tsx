@@ -47,34 +47,38 @@ function getScoreFromStatus(status?: string | null) {
 }
 
 export default async function MarketplacePage() {
- const res = await pool.query(
-  `
+ 
+
+const res = await pool.query(`
+  SELECT
+    p.id,
+    p.title,
+    p.description,
+    p.price,
+    p.address,
+    p.image,
+    p.status_diligencia,
+
+    t.trust_score,
+    t.risk_level,
+    t.token_reference
+
+  FROM property p
+
+  LEFT JOIN LATERAL (
     SELECT
-      p.id,
-      p.title,
-      p.description,
-      p.price,
-      p.address,
-      p.image,
-      p.status_diligencia,
-      tt.trust_score,
-      tt.risk_level,
-      tt.token_reference
-    FROM property p
-    LEFT JOIN trust_token t
-    on t.property_id = p.id
-      SELECT
-        trust_score,
-        risk_level,
-        token_reference
-      FROM trust_token
-      WHERE property_id = p.id
-      ORDER BY id DESC
-      LIMIT 1
-    ) tt ON true
-    ORDER BY p.id DESC
-  `
-);
+      trust_score,
+      risk_level,
+      token_reference
+    FROM trust_token
+    WHERE property_id = p.id
+    ORDER BY id DESC
+    LIMIT 1
+  ) t ON true
+
+  ORDER BY p.id DESC
+`);
+
   console.log(res.rows)
 
   const imoveis = res.rows;
