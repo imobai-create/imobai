@@ -19,7 +19,7 @@ export default function ViewCertificateButton({ tokenReference }: Props) {
       return;
     }
 
-    router.push(`/trust-token/${tokenReference}`);
+ router.push(`/trust-token/${tokenReference}`)
   }
 
   return (

@@ -7,14 +7,14 @@ export const revalidate = 0;
 type ImovelRow = {
   id: number;
   title: string;
-  description?: string | null;
+  description: string | null;
   price: number | string;
   address: string;
-  image?: string | null;
-  status_diligencia?: string | null;
-  trust_score?: number | null;
-  risk_level?: string | null;
-  token_reference?: string | null;
+  image: string | null;
+  status_diligencia: string | null;
+  trust_score: number | null;
+  risk_level: string | null;
+  token_reference: string | null;
 };
 
 function formatPrice(value: number | string) {
@@ -61,7 +61,8 @@ export default async function MarketplacePage() {
       tt.risk_level,
       tt.token_reference
     FROM property p
-    LEFT JOIN LATERAL (
+    LEFT JOIN trust_token t
+    on t.property_id = p.id
       SELECT
         trust_score,
         risk_level,
