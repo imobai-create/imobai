@@ -1,35 +1,29 @@
+
+
 import Link from "next/link";
 import pool from "@/lib/db";
 import InterestButton from "@/app/components/InterestButton";
-import TrustPanel from "@/app/components/TrustPanel";
-import TrustAnalysisCard from '@/app/components/TrustAnalysisCard';
-import TrustBadge from "@/app/components/TrustBadge";
 import ViewCertificateButton from "@/app/components/ViewCertificateButton";
+import TrustBadge from "@/app/components/TrustBadge";
 
-type PageProps = {
-  params: Promise<{ id: string }>;
-};
-type ImovelRow = {
+type MarketplaceRow = {
   id: number;
   title: string;
   description: string | null;
-  price: number | string;
-  address: string;
-  city: string | null;
+  price: number | string | null;
+  address: string | null;
   image: string | null;
   status_diligencia: string | null;
-  score: number | null;
-  risk_level: string | null;
-  userId?: number | null;
-};
-type TrustTokenRow = {
-  token_reference: string;
   trust_score: number | null;
   risk_level: string | null;
+  token_reference: string | null;
+  userId: number | null;
 };
 
-function formatPrice(value: number | string) {
-  const num = typeof value === "number" ? value : Number(value);
+function formatPrice(value: number | string | null) {
+  const num =
+    typeof value === "number" ? value : value ? Number(value) : Number.NaN;
+
   if (!Number.isFinite(num)) return "Preço sob consulta";
 
   return new Intl.NumberFormat("pt-BR", {
@@ -39,321 +33,289 @@ function formatPrice(value: number | string) {
   }).format(num);
 }
 
-export default async function ImovelPage({ params }: PageProps) {
-  const { id } = await params;
-  const imovelId = Number(id);
-
-  if (!Number.isFinite(imovelId)) {
-    return (
-      <main style={{ padding: 40 }}>
-        <h1>ID inválido</h1>
-      </main>
-    );
-  }
-
-  const res = await pool.query<ImovelRow>(
-    `
+export default async function MarketplacePage() {
+  const res = await pool.query<MarketplaceRow>(`
     SELECT
-      id,
-      title,
-      description,
-      price,
-      address,
-      city,
-      image,
-      status_diligencia,
-      score,
-      risk_level
-    FROM property
-    WHERE id = $1
-    LIMIT 1
-    `,
-    [imovelId]
-  );
+      p.id,
+      p.title,
+      p.description,
+      p.price,
+      p.address,
+      p.image,
+      p.status_diligencia,
+      p.user_id AS "userId",
+      tt.trust_score,
+      tt.risk_level,
+      tt.token_reference
+    FROM property p
+    LEFT JOIN LATERAL (
+      SELECT
+        t.trust_score,
+        t.risk_level,
+        t.token_reference
+      FROM trust_token t
+      WHERE t.property_id = p.id
+      ORDER BY t.id DESC
+      LIMIT 1
+    ) tt ON true
+    ORDER BY p.id DESC
+  `);
 
-  if (res.rows.length === 0) {
-    return (
-      <main style={{ padding: 40 }}>
-        <h1>Imóvel não encontrado</h1>
-      </main>
-    );
-  }
+  const imoveis = res.rows;
 
-  const imovel = res.rows[0];
+  return (
+    <main style={pageBg}>
+      <div style={shell}>
+        <div style={{ maxWidth: 980 }}>
+          <div style={brand}>ImobAI</div>
+          <div style={brandSub}>IMOBAI — você no comando.</div>
 
-const propertyId = imovel.id;
-const imageSrc =
-  imovel.image && String(imovel.image).trim() !== ""
-    ? String(imovel.image)
-    : "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
+          <h1 style={heroTitle}>Marketplace</h1>
+          <p style={heroText}>
+            A maneira mais simples e segura de comprar ou vender imóveis. Sem
+            burocracia e com proteção jurídica automática.
+          </p>
+        </div>
 
-  const trustTokenRes = await pool.query<TrustTokenRow>(
-  `
-    SELECT
-      token_reference,
-      trust_score,
-      risk_level
-    FROM trust_token
-    WHERE property_id = $1
-    ORDER BY id DESC
-    LIMIT 1
-  `,
-  [imovel.id]
-);
+        <div style={grid}>
+          {imoveis.map((item) => {
+            const imageSrc = item.image?.trim() ? item.image : null;
 
-const trustToken = trustTokenRes.rows[0] ?? null;
-
-  
-return (
-  <main style={{ minHeight: "100vh", background: "#eef1f4", color: "#111827" }}>
-    <div style={{ maxWidth: 1240, margin: "0 auto", padding: "26px 24px 70px" }}></div>
-<div
-  style={{
-    display: "flex",
-    gap: 12,
-    alignItems: "center",
-    flexWrap: "wrap",
-    marginTop: 14,
-  }}
->
-  <TrustBadge
-    score={imovel.score ?? undefined}
-    riskLevel={imovel.risk_level ?? undefined}
-  />
-
-  <ViewCertificateButton tokenReference={"IMOB-TT-2-TESTE"} />
-</div>
-
-<Link href="/marketplace" style={{ display: "inline-flex", marginTop: 12 }}>
-  ← Voltar
-</Link>
-
-<div
-  style={{
-    marginTop: 22,
-    display: "grid",
-    gridTemplateColumns: "1.25fr 0.75fr",
-    gap: 24,
-  }}
->
-  <div
-    style={{
-      background: "rgba(255,255,255,0.88)",
-      border: "1px solid rgba(15,23,42,0.08)",
-      borderRadius: 28,
-      overflow: "hidden",
-      boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
-    }}
-  >
-<div
-  style={{
-    display: "flex",
-    gap: 12,
-    alignItems: "center",
-    flexWrap: "wrap",
-    marginTop: 14,
-  }}
->
-  <TrustBadge
-    score={imovel.score ?? undefined}
-    riskLevel={imovel.risk_level ?? undefined}
-  />
-
-  <ViewCertificateButton tokenReference={"IMOB-TT-1-1773277112478"} />
-</div>
-
-<Link href="/marketplace" style={{ display: "inline-flex", marginTop: 12 }}>
-  ← Voltar
-</Link>
-
-<div
-  style={{
-    marginTop: 22,
-    display: "grid",
-    gridTemplateColumns: "1.25fr 0.75fr",
-    gap: 24,
-  }}
->
-  <div
-    style={{
-      background: "rgba(255,255,255,0.88)",
-      border: "1px solid rgba(15,23,42,0.08)",
-      borderRadius: 28,
-      overflow: "hidden",
-      boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
-    }}
-  >
-
-              {imageSrc ? (
-                <img
-                  src={imageSrc}
-                  alt={imovel.title}
-                  style={{
-                    width: "100%",
-                    height: 440,
-                    objectFit: "cover",
-                    display: "block",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    height: 440,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "#e5e7eb",
-                    color: "#6b7280",
-                  }}
-                >
-                  Sem imagem
+            return (
+              <article key={item.id} style={card}>
+                <div style={mediaWrap}>
+                  {imageSrc ? (
+                    <img
+                      src={imageSrc}
+                      alt={item.title}
+                      style={media}
+                    />
+                  ) : (
+                    <div style={mediaFallback}>Imagem não disponível</div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div
-              style={{
-                marginTop: 20,
-                background: "rgba(255,255,255,0.88)",
-                border: "1px solid rgba(15,23,42,0.08)",
-                borderRadius: 28,
-                padding: 28,
-                boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-flex",
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(15,23,42,0.10)",
-                  color: "#475569",
-                  fontSize: 13,
-                  marginBottom: 18,
-                }}
-              >
-                IMOBAI — você no comando.
-              </div>
+                <div style={content}>
+                  <div style={topRow}>
+                    <TrustBadge
+                      score={item.trust_score ?? undefined}
+                      riskLevel={item.risk_level ?? undefined}
+                    />
+                  </div>
 
-              <h1
-                style={{
-                  fontSize: 48,
-                  lineHeight: 1.02,
-                  fontWeight: 750,
-                  margin: 0,
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                {imovel.title}
-              </h1>
+                  <h2 style={title}>{item.title}</h2>
 
-              <div
-                style={{
-                  marginTop: 16,
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                }}
-              >
-                <span style={pillStyle}>ID {imovel.id}</span>
-                <span style={pillStyle}>Diligência: {imovel.status_diligencia}</span>
-                <span style={pillStyle}>{imovel.address}</span>
-              </div>
+                  <div style={address}>
+                    {item.address ?? "Endereço não informado"}
+                  </div>
 
-              <p
-                style={{
-                  marginTop: 24,
-                  fontSize: 18,
-                  lineHeight: 1.65,
-                  color: "#475569",
-                }}
-              >
-                {imovel.description}
-              </p>
-               <TrustPanel propertyId={propertyId} />
-               <TrustAnalysisCard propertyId={propertyId} />
-            </div>
-          </div>
+                  <div style={price}>
+                    {formatPrice(item.price)}
+                  </div>
 
-          <aside>
-            <div
-              style={{
-                position: "sticky",
-                top: 24,
-                background: "rgba(255,255,255,0.88)",
-                border: "1px solid rgba(15,23,42,0.08)",
-                borderRadius: 28,
-                padding: 24,
-                boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
-              }}
-            >
-              <div style={{ color: "#64748b", fontSize: 12 }}>Preço</div>
-              <div
-                style={{
-                  fontSize: 40,
-                  fontWeight: 750,
-                  letterSpacing: "-0.04em",
-                  marginTop: 6,
-                }}
-              >
-                
+                  <div style={statusRow}>
+                    <span style={statusChip}>
+                      {item.status_diligencia ?? "PENDENTE"}
+                    </span>
+                  </div>
 
-{formatPrice(Number(imovel.price || 0))}
+                  <p style={description}>
+                    {item.description ?? "Descrição não informada."}
+                  </p>
 
-<InterestButton
-  propertyId={imovel.id}
-  ownerId={1}
-  price={Number(imovel.price || 0)}
-/>
-              </div>
+                  <div style={actionsGrid}>
+                    <InterestButton
+                      propertyId={item.id}
+                      ownerId={Number(item.userId ?? 1)}
+                      price={Number(item.price ?? 0)}
+                    />
 
-              <Link
-                href="/marketplace"
-                style={{
-                  marginTop: 12,
-                  display: "flex",
-                  width: "100%",
-                  height: 52,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 16,
-                  border: "1px solid rgba(15,23,42,0.10)",
-                  background: "rgba(255,255,255,0.8)",
-                  color: "#111827",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Ver outros imóveis
-              </Link>
+                    <Link href={`/imovel/${item.id}`} style={btnSecondary}>
+                      Ver imóvel
+                    </Link>
 
-              <div
-                style={{
-                  marginTop: 16,
-                  paddingTop: 16,
-                  borderTop: "1px solid rgba(15,23,42,0.08)",
-                  color: "#64748b",
-                  lineHeight: 1.55,
-                  fontSize: 14,
-                }}
-              >
-                A maneira mais simples e segura de comprar ou vender imóveis. Sem cartório, sem burocracia e com proteção jurídica automática.
-              </div>
-            </div>
-          </aside>
+                    <Link
+                      href={`/diligencia/${item.id}`}
+                      style={btnSecondary}
+                    >
+                      Ver diligência
+                    </Link>
+
+                    <ViewCertificateButton
+                      tokenReference={item.token_reference ?? null}
+                    />
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </main>
   );
 }
 
-const pillStyle: React.CSSProperties = {
+const pageBg = {
+  minHeight: "100vh",
+  background: "#eef1f4",
+  color: "#111827",
+};
+
+const shell = {
+  maxWidth: 1240,
+  margin: "0 auto",
+  padding: "32px 24px 70px",
+};
+
+const brand = {
+  fontSize: 28,
+  fontWeight: 760,
+  letterSpacing: "-0.04em",
+};
+
+const brandSub = {
+  marginTop: 4,
+  fontSize: 15,
+  color: "#64748b",
+};
+
+const heroTitle = {
+  margin: "18px 0 0",
+  fontSize: 72,
+  lineHeight: 0.98,
+  fontWeight: 780,
+  letterSpacing: "-0.06em",
+};
+
+const heroText = {
+  marginTop: 18,
+  maxWidth: 980,
+  fontSize: 24,
+  lineHeight: 1.5,
+  color: "#475569",
+};
+
+const grid = {
+  marginTop: 34,
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 24,
+};
+
+const card = {
+  display: "grid",
+  gridTemplateColumns: "1.15fr 0.85fr",
+  gap: 0,
+  borderRadius: 30,
+  overflow: "hidden",
+  background: "rgba(255,255,255,0.88)",
+  border: "1px solid rgba(15,23,42,0.08)",
+  boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
+};
+
+const mediaWrap = {
+  minHeight: 420,
+  background: "#dbe4ee",
+};
+
+const media = {
+  width: "100%",
+  height: "100%",
+  minHeight: 420,
+  objectFit: "cover" as const,
+  display: "block",
+};
+
+const mediaFallback = {
+  minHeight: 420,
+  display: "grid",
+  placeItems: "center",
+  color: "#64748b",
+  background:
+    "linear-gradient(135deg, rgba(226,232,240,0.9), rgba(241,245,249,0.95))",
+};
+
+const content = {
+  padding: 28,
+  display: "flex",
+  flexDirection: "column" as const,
+};
+
+const topRow = {
+  display: "flex",
+  justifyContent: "flex-start",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap" as const,
+};
+
+const title = {
+  margin: "18px 0 0",
+  fontSize: 54,
+  lineHeight: 0.98,
+  fontWeight: 780,
+  letterSpacing: "-0.05em",
+};
+
+const address = {
+  marginTop: 14,
+  fontSize: 20,
+  color: "#475569",
+};
+
+const price = {
+  marginTop: 18,
+  fontSize: 48,
+  fontWeight: 780,
+  letterSpacing: "-0.04em",
+};
+
+const statusRow = {
+  marginTop: 16,
+  display: "flex",
+  gap: 10,
+  flexWrap: "wrap" as const,
+};
+
+const statusChip = {
   display: "inline-flex",
   alignItems: "center",
-  padding: "8px 14px",
+  justifyContent: "center",
+  minHeight: 38,
+  padding: "0 14px",
   borderRadius: 999,
   border: "1px solid rgba(15,23,42,0.10)",
-  background: "rgba(255,255,255,0.86)",
   color: "#475569",
-  fontSize: 13,
+  fontWeight: 600,
+  background: "rgba(255,255,255,0.82)",
 };
+
+const description = {
+  marginTop: 18,
+  color: "#475569",
+  lineHeight: 1.65,
+  fontSize: 17,
+};
+
+const actionsGrid = {
+  marginTop: 24,
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 12,
+};
+
+const btnSecondary = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 54,
+  padding: "0 18px",
+  borderRadius: 16,
+  background: "#ffffff",
+  color: "#111827",
+  textDecoration: "none",
+  fontWeight: 600,
+  border: "1px solid rgba(15,23,42,0.10)",
+};
+
+
