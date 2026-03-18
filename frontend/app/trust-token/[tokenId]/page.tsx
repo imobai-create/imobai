@@ -74,8 +74,8 @@ function riskColor(risk: string | null | undefined) {
 export default async function TrustTokenPublicPage({ params }: PageProps) {
   const { tokenId } = await params;
 
-  const result = await pool.query<TrustTokenRow>(
-    `
+ const tokenRes = await pool.query(
+  `
     SELECT
       t.id,
       t.deal_id,
@@ -91,14 +91,13 @@ export default async function TrustTokenPublicPage({ params }: PageProps) {
       t.network,
       t.token_reference,
       t.status,
-      t.created_at::text,
-      t.updated_at::text,
-      p.title AS property_title,
-      p.address AS property_address,
-      p.description AS property_description,
-      p.price AS property_price,
-      p.image AS property_image,
-      p.status_diligencia AS property_status_diligencia,
+      t.created_at,
+      t.updated_at,
+      p.title,
+      p.address,
+      p.price,
+      p.description,
+      p.status_diligencia,
       b.tx_hash
     FROM trust_token t
     LEFT JOIN property p
@@ -107,11 +106,11 @@ export default async function TrustTokenPublicPage({ params }: PageProps) {
       ON b.id = t.blockchain_receipt_id
     WHERE t.token_reference = $1
     LIMIT 1
-    `,
-    [tokenId]
-  );
+  `,
+  [tokenId]
+);
 
-  const token = result.rows[0];
+const token = tokenRes.rows[0];
 
   if (!token) {
     return (
