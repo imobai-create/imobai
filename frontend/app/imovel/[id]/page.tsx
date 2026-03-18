@@ -121,7 +121,7 @@ return (
     riskLevel={imovel.risk_level ?? undefined}
   />
 
-  <ViewCertificateButton tokenReference={"IMOB-TT-1-1773277112478"} />
+  <ViewCertificateButton tokenReference={"IMOB-TT-2-TESTE"} />
 </div>
 
 <Link href="/marketplace" style={{ display: "inline-flex", marginTop: 12 }}>
