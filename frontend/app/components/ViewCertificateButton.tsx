@@ -7,7 +7,7 @@
 import { useRouter } from "next/navigation";
 
 type Props = {
-  tokenReference: string;
+  tokenReference: string | null;
 };
 
 export default function ViewCertificateButton({ tokenReference }: Props) {
@@ -15,7 +15,7 @@ export default function ViewCertificateButton({ tokenReference }: Props) {
 
   function handleClick() {
     if (!tokenReference) {
-      alert("Certificado indisponível.");
+      alert("Token não disponível");
       return;
     }
 
@@ -24,18 +24,19 @@ export default function ViewCertificateButton({ tokenReference }: Props) {
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       style={{
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: "12px 18px",
-        borderRadius: 14,
-        border: "1px solid #d6dae1",
+        minHeight: 52,
+        padding: "0 18px",
+        borderRadius: 16,
         background: "#ffffff",
-        color: "#0f172a",
-        fontSize: 15,
-        fontWeight: 700,
+        color: "#111827",
+        border: "1px solid rgba(15,23,42,0.10)",
+        fontWeight: 600,
         cursor: "pointer",
       }}
     >
@@ -43,5 +44,3 @@ export default function ViewCertificateButton({ tokenReference }: Props) {
     </button>
   );
 }
-
-

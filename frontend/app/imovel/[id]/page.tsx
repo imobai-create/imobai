@@ -22,6 +22,11 @@ type ImovelRow = {
   risk_level: string | null;
   userId?: number | null;
 };
+type TrustTokenRow = {
+  token_reference: string;
+  trust_score: number | null;
+  risk_level: string | null;
+};
 
 function formatPrice(value: number | string) {
   const num = typeof value === "number" ? value : Number(value);
@@ -82,48 +87,103 @@ const imageSrc =
     ? String(imovel.image)
     : "https://images.unsplash.com/photo-1568605114967-8130f3a36994";
 
-  return (
-    <main style={{ minHeight: "100vh", background: "#f3f4f6", color: "#111827" }}>
-      <div style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 24px 64px" }}>
-        <Link href="/marketplace" style={{ color: "#475569", textDecoration: "none" }}>     
+  const trustTokenRes = await pool.query<TrustTokenRow>(
+  `
+    SELECT
+      token_reference,
+      trust_score,
+      risk_level
+    FROM trust_token
+    WHERE property_id = $1
+    ORDER BY id DESC
+    LIMIT 1
+  `,
+  [imovel.id]
+);
 
+const trustToken = trustTokenRes.rows[0] ?? null;
+
+  
+return (
+  <main style={{ minHeight: "100vh", background: "#eef1f4", color: "#111827" }}>
+    <div style={{ maxWidth: 1240, margin: "0 auto", padding: "26px 24px 70px" }}></div>
 <div
   style={{
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 10,
+    display: "flex",
+    gap: 12,
+    alignItems: "center",
+    flexWrap: "wrap",
     marginTop: 14,
-    alignItems: 'center',
   }}
 >
   <TrustBadge
-    score={undefined}
-    riskLevel={undefined}
+    score={imovel.score ?? undefined}
+    riskLevel={imovel.risk_level ?? undefined}
   />
+
   <ViewCertificateButton tokenReference={"IMOB-TT-1-1773277112478"} />
 </div>
 
-          ← Voltar
-        </Link>
+<Link href="/marketplace" style={{ display: "inline-flex", marginTop: 12 }}>
+  ← Voltar
+</Link>
 
-        <div
-          style={{
-            marginTop: 22,
-            display: "grid",
-            gridTemplateColumns: "1.25fr 0.75fr",
-            gap: 24,
-          }}
-        >
-          <div>
-            <div
-              style={{
-                background: "rgba(255,255,255,0.88)",
-                border: "1px solid rgba(15,23,42,0.08)",
-                borderRadius: 28,
-                overflow: "hidden",
-                boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
-              }}
-            >
+<div
+  style={{
+    marginTop: 22,
+    display: "grid",
+    gridTemplateColumns: "1.25fr 0.75fr",
+    gap: 24,
+  }}
+>
+  <div
+    style={{
+      background: "rgba(255,255,255,0.88)",
+      border: "1px solid rgba(15,23,42,0.08)",
+      borderRadius: 28,
+      overflow: "hidden",
+      boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
+    }}
+  >
+<div
+  style={{
+    display: "flex",
+    gap: 12,
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginTop: 14,
+  }}
+>
+  <TrustBadge
+    score={imovel.score ?? undefined}
+    riskLevel={imovel.risk_level ?? undefined}
+  />
+
+  <ViewCertificateButton tokenReference={"IMOB-TT-1-1773277112478"} />
+</div>
+
+<Link href="/marketplace" style={{ display: "inline-flex", marginTop: 12 }}>
+  ← Voltar
+</Link>
+
+<div
+  style={{
+    marginTop: 22,
+    display: "grid",
+    gridTemplateColumns: "1.25fr 0.75fr",
+    gap: 24,
+  }}
+>
+  <div
+    style={{
+      background: "rgba(255,255,255,0.88)",
+      border: "1px solid rgba(15,23,42,0.08)",
+      borderRadius: 28,
+      overflow: "hidden",
+      boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
+    }}
+  >
+
               {imageSrc ? (
                 <img
                   src={imageSrc}

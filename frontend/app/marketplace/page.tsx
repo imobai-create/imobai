@@ -1,5 +1,6 @@
 import Link from "next/link";
 import pool from "@/lib/db";
+import ViewCertificateButton from "../components/ViewCertificateButton";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -11,6 +12,9 @@ type ImovelRow = {
   address: string;
   image?: string | null;
   status_diligencia?: string | null;
+  trust_score?: number | null;
+  risk_level?: string | null;
+  token_reference?: string | null;
 };
 
 function formatPrice(value: number | string) {
@@ -43,20 +47,33 @@ function getScoreFromStatus(status?: string | null) {
 }
 
 export default async function MarketplacePage() {
-  const res = await pool.query<ImovelRow>(`
+ const res = await pool.query(
+  `
     SELECT
-      id,
-      title,
-      description,
-      price,
-      address,
-      image,
-      status_diligencia,
-      score,
-      risk_level
-    FROM property
-    ORDER BY id DESC
-  `);
+      p.id,
+      p.title,
+      p.description,
+      p.price,
+      p.address,
+      p.image,
+      p.status_diligencia,
+      tt.trust_score,
+      tt.risk_level,
+      tt.token_reference
+    FROM property p
+    LEFT JOIN LATERAL (
+      SELECT
+        trust_score,
+        risk_level,
+        token_reference
+      FROM trust_token
+      WHERE property_id = p.id
+      ORDER BY id DESC
+      LIMIT 1
+    ) tt ON true
+    ORDER BY p.id DESC
+  `
+);
   console.log(res.rows)
 
   const imoveis = res.rows;
@@ -111,7 +128,7 @@ console.log("MARKETPLACE_COUNT =", res.rows.length);
               }}
             >
               A maneira mais simples e segura de comprar ou vender imóveis.
-              Sem cartório, sem burocracia e com proteção jurídica automática.
+              Sem cartório, sem burocracia e com proteção jurídica automática. É voce no comando.
             </p>
           </div>
 
@@ -176,8 +193,6 @@ console.log("MARKETPLACE_COUNT =", res.rows.length);
                     }}
                   >
                      
-
-
 
 <img
   src={
@@ -366,6 +381,8 @@ console.log("MARKETPLACE_COUNT =", res.rows.length);
                       <Link href={`/diligencia/${item.id}`} style={btnSecondary}>
                         Ver diligência
                       </Link>
+
+<ViewCertificateButton tokenReference={item.token_reference ?? null} />
                     </div>
                   </div>
                 </article>
