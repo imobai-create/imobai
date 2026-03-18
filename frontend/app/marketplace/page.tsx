@@ -48,7 +48,6 @@ function getScoreFromStatus(status?: string | null) {
 
 export default async function MarketplacePage() {
  
-
 const res = await pool.query(`
   SELECT
     p.id,
@@ -58,11 +57,10 @@ const res = await pool.query(`
     p.address,
     p.image,
     p.status_diligencia,
-
-    t.trust_score,
-    t.risk_level,
-    t.token_reference
-
+    p.user_id as "userId",
+    tt.trust_score,
+    tt.risk_level,
+    tt.token_reference
   FROM property p
 
   LEFT JOIN LATERAL (
@@ -74,7 +72,7 @@ const res = await pool.query(`
     WHERE property_id = p.id
     ORDER BY id DESC
     LIMIT 1
-  ) t ON true
+  ) tt ON true
 
   ORDER BY p.id DESC
 `);
