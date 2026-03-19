@@ -149,10 +149,6 @@ export default async function ImovelPage({ params }: PageProps) {
     riskLevel={imovel.risk_level ?? undefined}
   />
 
-  <TrustPanel
-    propertyId={imovel.id}
-  />
-
   <ViewCertificateButton
     tokenReference={imovel.token_reference ?? null}
   />
