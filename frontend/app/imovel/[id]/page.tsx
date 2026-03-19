@@ -1,12 +1,17 @@
 
 
+
 import Link from "next/link";
 import pool from "@/lib/db";
 import InterestButton from "@/app/components/InterestButton";
 import ViewCertificateButton from "@/app/components/ViewCertificateButton";
 import TrustBadge from "@/app/components/TrustBadge";
 
-type MarketplaceRow = {
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
+
+type ImovelRow = {
   id: number;
   title: string;
   description: string | null;
@@ -14,10 +19,10 @@ type MarketplaceRow = {
   address: string | null;
   image: string | null;
   status_diligencia: string | null;
-  trust_score: number | null;
+  userId: number | null;
+  score: number | null;
   risk_level: string | null;
   token_reference: string | null;
-  userId: number | null;
 };
 
 function formatPrice(value: number | string | null) {
@@ -33,201 +38,236 @@ function formatPrice(value: number | string | null) {
   }).format(num);
 }
 
-export default async function MarketplacePage() {
-  const res = await pool.query<MarketplaceRow>(`
-    SELECT
-      p.id,
-      p.title,
-      p.description,
-      p.price,
-      p.address,
-      p.image,
-      p.status_diligencia,
-      p.user_id AS "userId",
-      tt.trust_score,
-      tt.risk_level,
-      tt.token_reference
-    FROM property p
-    LEFT JOIN LATERAL (
-      SELECT
-        t.trust_score,
-        t.risk_level,
-        t.token_reference
-      FROM trust_token t
-      WHERE t.property_id = p.id
-      ORDER BY t.id DESC
-      LIMIT 1
-    ) tt ON true
-    ORDER BY p.id DESC
-  `);
+export default async function ImovelPage({ params }: PageProps) {
+  const { id } = await params;
+  const propertyId = Number(id);
 
-  const imoveis = res.rows;
+  if (!Number.isFinite(propertyId)) {
+    return (
+      <main style={pageBg}>
+        <div style={shell}>
+          <Link href="/marketplace" style={backLink}>
+            ← Voltar
+          </Link>
+
+          <div style={errorCard}>
+            <h1 style={errorTitle}>Imóvel inválido</h1>
+            <p style={errorText}>O identificador informado não é válido.</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  let imovel: ImovelRow | null = null;
+  let queryError: string | null = null;
+
+  try {
+    const res = await pool.query<ImovelRow>(
+      `
+      SELECT
+        p.id,
+        p.title,
+        p.description,
+        p.price,
+        p.address,
+        p.image,
+        p.status_diligencia,
+        p.user_id AS "userId",
+        tt.trust_score AS score,
+        tt.risk_level,
+        tt.token_reference
+      FROM property p
+      LEFT JOIN LATERAL (
+        SELECT
+          t.trust_score,
+          t.risk_level,
+          t.token_reference
+        FROM trust_token t
+        WHERE t.property_id = p.id
+        ORDER BY t.id DESC
+        LIMIT 1
+      ) tt ON true
+      WHERE p.id = $1
+      LIMIT 1
+      `,
+      [propertyId]
+    );
+
+    imovel = res.rows[0] ?? null;
+  } catch (error) {
+    console.error("Erro ao carregar imóvel:", error);
+    queryError =
+      error instanceof Error ? error.message : "Erro ao carregar imóvel.";
+  }
+
+  if (queryError) {
+    return (
+      <main style={pageBg}>
+        <div style={shell}>
+          <Link href="/marketplace" style={backLink}>
+            ← Voltar
+          </Link>
+
+          <div style={errorCard}>
+            <h1 style={errorTitle}>Erro ao abrir imóvel</h1>
+            <p style={errorText}>{queryError}</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!imovel) {
+    return (
+      <main style={pageBg}>
+        <div style={shell}>
+          <Link href="/marketplace" style={backLink}>
+            ← Voltar
+          </Link>
+
+          <div style={errorCard}>
+            <h1 style={errorTitle}>Imóvel não encontrado</h1>
+            <p style={errorText}>
+              Esse imóvel não existe ou foi removido.
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const imageSrc = imovel.image?.trim() ? imovel.image : null;
 
   return (
     <main style={pageBg}>
       <div style={shell}>
-        <div style={{ maxWidth: 980 }}>
-          <div style={brand}>ImobAI</div>
-          <div style={brandSub}>IMOBAI — você no comando.</div>
+        <div style={topRow}>
+          <TrustBadge
+            score={imovel.score ?? undefined}
+            riskLevel={imovel.risk_level ?? undefined}
+          />
 
-          <h1 style={heroTitle}>Marketplace</h1>
-          <p style={heroText}>
-            A maneira mais simples e segura de comprar ou vender imóveis. Sem
-            burocracia e com proteção jurídica automática.
-          </p>
+          <ViewCertificateButton
+            tokenReference={imovel.token_reference ?? null}
+          />
         </div>
 
-        <div style={grid}>
-          {imoveis.map((item) => {
-            const imageSrc = item.image?.trim() ? item.image : null;
+        <Link href="/marketplace" style={backLink}>
+          ← Voltar
+        </Link>
 
-            return (
-              <article key={item.id} style={card}>
-                <div style={mediaWrap}>
-                  {imageSrc ? (
-                    <img
-                      src={imageSrc}
-                      alt={item.title}
-                      style={media}
-                    />
-                  ) : (
-                    <div style={mediaFallback}>Imagem não disponível</div>
-                  )}
-                </div>
+        <div style={contentGrid}>
+          <div>
+            <div style={imageCard}>
+              {imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt={imovel.title}
+                  style={imageStyle}
+                />
+              ) : (
+                <div style={imageFallback}>Imagem não disponível</div>
+              )}
+            </div>
+          </div>
 
-                <div style={content}>
-                  <div style={topRow}>
-                    <TrustBadge
-                      score={item.trust_score ?? undefined}
-                      riskLevel={item.risk_level ?? undefined}
-                    />
-                  </div>
+          <aside style={sideCard}>
+            <div style={pill}>IMOBAI — você no comando.</div>
 
-                  <h2 style={title}>{item.title}</h2>
+            <h1 style={title}>{imovel.title}</h1>
 
-                  <div style={address}>
-                    {item.address ?? "Endereço não informado"}
-                  </div>
+            <div style={chipsRow}>
+              <span style={chip}>ID {imovel.id}</span>
+              <span style={chip}>
+                Diligência: {imovel.status_diligencia ?? "PENDENTE"}
+              </span>
+              <span style={chip}>
+                {imovel.address ?? "Endereço não informado"}
+              </span>
+            </div>
 
-                  <div style={price}>
-                    {formatPrice(item.price)}
-                  </div>
+            <p style={description}>
+              {imovel.description ?? "Descrição não informada."}
+            </p>
 
-                  <div style={statusRow}>
-                    <span style={statusChip}>
-                      {item.status_diligencia ?? "PENDENTE"}
-                    </span>
-                  </div>
+            <div style={price}>{formatPrice(imovel.price)}</div>
 
-                  <p style={description}>
-                    {item.description ?? "Descrição não informada."}
-                  </p>
+            <div style={actionsGrid}>
+              <InterestButton
+                propertyId={imovel.id}
+                ownerId={Number(imovel.userId ?? 1)}
+                price={Number(imovel.price ?? 0)}
+              />
 
-                  <div style={actionsGrid}>
-                    <InterestButton
-                      propertyId={item.id}
-                      ownerId={Number(item.userId ?? 1)}
-                      price={Number(item.price ?? 0)}
-                    />
+              <Link href="/marketplace" style={btnSecondary}>
+                Ver outros imóveis
+              </Link>
+            </div>
 
-                    <Link href={`/imovel/${item.id}`} style={btnSecondary}>
-                      Ver imóvel
-                    </Link>
-
-                    <Link
-                      href={`/diligencia/${item.id}`}
-                      style={btnSecondary}
-                    >
-                      Ver diligência
-                    </Link>
-
-                    <ViewCertificateButton
-                      tokenReference={item.token_reference ?? null}
-                    />
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+            <div style={infoBox}>
+              A maneira mais simples e segura de comprar ou vender imóveis.
+              Sem cartório, sem burocracia e com proteção jurídica automática.
+            </div>
+          </aside>
         </div>
       </div>
     </main>
   );
 }
 
-const pageBg = {
+const pageBg: React.CSSProperties = {
   minHeight: "100vh",
   background: "#eef1f4",
   color: "#111827",
 };
 
-const shell = {
+const shell: React.CSSProperties = {
   maxWidth: 1240,
   margin: "0 auto",
   padding: "32px 24px 70px",
 };
 
-const brand = {
-  fontSize: 28,
-  fontWeight: 760,
-  letterSpacing: "-0.04em",
+const topRow: React.CSSProperties = {
+  display: "flex",
+  gap: 12,
+  alignItems: "center",
+  flexWrap: "wrap",
+  marginTop: 14,
 };
 
-const brandSub = {
-  marginTop: 4,
-  fontSize: 15,
-  color: "#64748b",
+const backLink: React.CSSProperties = {
+  display: "inline-flex",
+  marginTop: 12,
+  color: "#334155",
+  fontWeight: 600,
+  textDecoration: "none",
 };
 
-const heroTitle = {
-  margin: "18px 0 0",
-  fontSize: 72,
-  lineHeight: 0.98,
-  fontWeight: 780,
-  letterSpacing: "-0.06em",
-};
-
-const heroText = {
-  marginTop: 18,
-  maxWidth: 980,
-  fontSize: 24,
-  lineHeight: 1.5,
-  color: "#475569",
-};
-
-const grid = {
-  marginTop: 34,
+const contentGrid: React.CSSProperties = {
+  marginTop: 22,
   display: "grid",
-  gridTemplateColumns: "1fr",
+  gridTemplateColumns: "1.25fr 0.75fr",
   gap: 24,
 };
 
-const card = {
-  display: "grid",
-  gridTemplateColumns: "1.15fr 0.85fr",
-  gap: 0,
-  borderRadius: 30,
-  overflow: "hidden",
+const imageCard: React.CSSProperties = {
   background: "rgba(255,255,255,0.88)",
   border: "1px solid rgba(15,23,42,0.08)",
+  borderRadius: 28,
+  overflow: "hidden",
   boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
 };
 
-const mediaWrap = {
-  minHeight: 420,
-  background: "#dbe4ee",
-};
-
-const media = {
+const imageStyle: React.CSSProperties = {
   width: "100%",
-  height: "100%",
-  minHeight: 420,
-  objectFit: "cover" as const,
+  height: 440,
+  objectFit: "cover",
   display: "block",
 };
 
-const mediaFallback = {
-  minHeight: 420,
+const imageFallback: React.CSSProperties = {
+  height: 440,
   display: "grid",
   placeItems: "center",
   color: "#64748b",
@@ -235,49 +275,41 @@ const mediaFallback = {
     "linear-gradient(135deg, rgba(226,232,240,0.9), rgba(241,245,249,0.95))",
 };
 
-const content = {
-  padding: 28,
-  display: "flex",
-  flexDirection: "column" as const,
+const sideCard: React.CSSProperties = {
+  background: "rgba(255,255,255,0.88)",
+  border: "1px solid rgba(15,23,42,0.08)",
+  borderRadius: 28,
+  padding: 26,
+  boxShadow: "0 18px 40px rgba(15,23,42,0.08)",
+  alignSelf: "start",
 };
 
-const topRow = {
-  display: "flex",
-  justifyContent: "flex-start",
-  alignItems: "center",
-  gap: 12,
-  flexWrap: "wrap" as const,
+const pill: React.CSSProperties = {
+  display: "inline-flex",
+  padding: "8px 14px",
+  borderRadius: 999,
+  border: "1px solid rgba(15,23,42,0.10)",
+  color: "#475569",
+  fontSize: 13,
+  fontWeight: 600,
 };
 
-const title = {
+const title: React.CSSProperties = {
   margin: "18px 0 0",
-  fontSize: 54,
+  fontSize: 56,
   lineHeight: 0.98,
   fontWeight: 780,
   letterSpacing: "-0.05em",
 };
 
-const address = {
-  marginTop: 14,
-  fontSize: 20,
-  color: "#475569",
-};
-
-const price = {
-  marginTop: 18,
-  fontSize: 48,
-  fontWeight: 780,
-  letterSpacing: "-0.04em",
-};
-
-const statusRow = {
-  marginTop: 16,
+const chipsRow: React.CSSProperties = {
+  marginTop: 12,
   display: "flex",
   gap: 10,
-  flexWrap: "wrap" as const,
+  flexWrap: "wrap",
 };
 
-const statusChip = {
+const chip: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -290,21 +322,28 @@ const statusChip = {
   background: "rgba(255,255,255,0.82)",
 };
 
-const description = {
-  marginTop: 18,
-  color: "#475569",
+const description: React.CSSProperties = {
+  marginTop: 22,
+  fontSize: 18,
   lineHeight: 1.65,
-  fontSize: 17,
+  color: "#475569",
 };
 
-const actionsGrid = {
+const price: React.CSSProperties = {
   marginTop: 24,
+  fontSize: 44,
+  fontWeight: 780,
+  letterSpacing: "-0.04em",
+};
+
+const actionsGrid: React.CSSProperties = {
+  marginTop: 20,
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: 12,
 };
 
-const btnSecondary = {
+const btnSecondary: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -316,6 +355,35 @@ const btnSecondary = {
   textDecoration: "none",
   fontWeight: 600,
   border: "1px solid rgba(15,23,42,0.10)",
+};
+
+const infoBox: React.CSSProperties = {
+  marginTop: 16,
+  paddingTop: 16,
+  borderTop: "1px solid rgba(15,23,42,0.08)",
+  color: "#64748b",
+  lineHeight: 1.55,
+  fontSize: 14,
+};
+
+const errorCard: React.CSSProperties = {
+  marginTop: 24,
+  background: "rgba(255,255,255,0.9)",
+  border: "1px solid rgba(15,23,42,0.08)",
+  borderRadius: 24,
+  padding: 24,
+};
+
+const errorTitle: React.CSSProperties = {
+  margin: 0,
+  fontSize: 32,
+  fontWeight: 760,
+};
+
+const errorText: React.CSSProperties = {
+  marginTop: 12,
+  color: "#475569",
+  lineHeight: 1.6,
 };
 
 
