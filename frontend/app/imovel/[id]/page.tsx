@@ -72,7 +72,6 @@ export default async function ImovelPage({ params }: PageProps) {
         p.address,
         p.image,
         p.status_diligencia,
-        p.user_id AS "userId",
         tt.trust_score AS score,
         tt.risk_level,
         tt.token_reference
