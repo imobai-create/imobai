@@ -19,7 +19,6 @@ type ImovelRow = {
   address: string | null;
   image: string | null;
   status_diligencia: string | null;
-  userId: number | null;
   score: number | null;
   risk_level: string | null;
   token_reference: string | null;
@@ -196,7 +195,7 @@ export default async function ImovelPage({ params }: PageProps) {
             <div style={actionsGrid}>
               <InterestButton
                 propertyId={imovel.id}
-                ownerId={Number(imovel.userId ?? 1)}
+                ownerId={1}
                 price={Number(imovel.price ?? 0)}
               />
 
