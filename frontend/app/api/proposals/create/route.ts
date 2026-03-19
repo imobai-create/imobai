@@ -1,19 +1,11 @@
 
 
-
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import pool from "@/lib/db";
 
-type Body = {
-  dealId: number;
-  offerPrice: number;
-  paymentTerms?: string;
-  validUntil?: string;
-};
-
 function buildPropostaCompraContent(params: {
-  proposalIdPlaceholder: string;
+  proposalId: number;
   dealId: number;
   propertyId: number;
   propertyTitle: string;
@@ -21,10 +13,9 @@ function buildPropostaCompraContent(params: {
   buyerName: string;
   sellerName: string;
   offerPrice: number;
-  paymentTerms: string;
-  validUntil: string;
-  proposalHash: string;
+  conditions: string;
   createdAt: string;
+  proposalHash: string;
 }) {
   const brl = new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -49,23 +40,19 @@ CLÁUSULA 1 — OBJETO
 CLÁUSULA 2 — VALOR
 2.1. O valor ofertado é de ${brl}.
 
-CLÁUSULA 3 — CONDIÇÕES DE PAGAMENTO
+CLÁUSULA 3 — CONDIÇÕES
 3.1. A proposta considera as seguintes condições:
-${params.paymentTerms}
+${params.conditions}
 
-CLÁUSULA 4 — PRAZO DE VALIDADE
-4.1. Esta proposta permanecerá válida até ${params.validUntil}.
-4.2. Expirado o prazo sem aceite, a proposta poderá ser considerada sem efeito.
+CLÁUSULA 4 — ACEITE
+4.1. O aceite do vendedor poderá ocorrer por meio digital dentro da plataforma IMOBAI.
+4.2. Uma vez aceita, a proposta poderá dar origem à promessa de compra e venda ou instrumento equivalente.
 
-CLÁUSULA 5 — ACEITE
-5.1. O aceite do vendedor poderá ocorrer por meio digital dentro da plataforma IMOBAI.
-5.2. Uma vez aceita, a proposta poderá dar origem à promessa de compra e venda ou instrumento equivalente.
-
-CLÁUSULA 6 — REGISTROS DIGITAIS
-6.1. A plataforma IMOBAI poderá registrar hash, metadados, eventos e demais evidências digitais vinculadas a esta proposta.
+CLÁUSULA 5 — REGISTROS DIGITAIS
+5.1. A plataforma IMOBAI poderá registrar hash, metadados, eventos e demais evidências digitais vinculadas a esta proposta.
 
 Data da emissão: ${params.createdAt}
-ID da proposta: ${params.proposalIdPlaceholder}
+ID da proposta: ${params.proposalId}
 ID da negociação: ${params.dealId}
 Hash do documento: ${params.proposalHash}
 `.trim();
@@ -75,22 +62,28 @@ export async function POST(req: Request) {
   const client = await pool.connect();
 
   try {
-    const body = (await req.json()) as Partial<Body>;
+    const body = await req.json();
 
     const dealId = Number(body.dealId);
-    const offerPrice = Number(body.offerPrice);
-    const paymentTerms =
-      String(body.paymentTerms ?? "").trim() || "Condições não informadas";
-    const validUntil =
-      String(body.validUntil ?? "").trim() ||
-      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const userId = Number(body.userId);
+    const price = Number(body.price);
+    const conditions =
+      String(body.conditions ?? "").trim() || "Condições não informadas";
 
-    if (![dealId, offerPrice].every(Number.isFinite)) {
+    if (![dealId, userId, price].every(Number.isFinite)) {
       return NextResponse.json(
         { error: "Dados inválidos" },
         { status: 400 }
       );
     }
+
+    // Se quiser impedir zero em produção, descomente:
+    // if (price <= 0) {
+    //   return NextResponse.json(
+    //     { error: "O valor da proposta deve ser maior que zero" },
+    //     { status: 400 }
+    //   );
+    // }
 
     await client.query("BEGIN");
 
@@ -153,53 +146,43 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3) Cria a proposta
-    const proposalRes = await client.query<{ id: number }>(
+    // 3) Salva a proposta na tabela atual que você já usa
+    const proposalRes = await client.query<{
+      id: number;
+      deal_id: number;
+      user_id: number;
+      price: number | string;
+      conditions: string | null;
+      status: string;
+      created_at: string;
+    }>(
       `
-      INSERT INTO proposals (
-        deal_id,
-        property_id,
-        buyer_user_id,
-        seller_user_id,
-        offer_price,
-        payment_terms,
-        valid_until,
-        status
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'OPEN')
-      RETURNING id
+      INSERT INTO proposals (deal_id, user_id, price, conditions)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, deal_id, user_id, price, conditions, status, created_at
       `,
-      [
-        deal.id,
-        deal.property_id,
-        deal.buyer_user_id,
-        deal.seller_user_id,
-        offerPrice,
-        paymentTerms,
-        validUntil,
-      ]
+      [dealId, userId, price, conditions]
     );
 
-    const proposalId = proposalRes.rows[0].id;
-    const createdAt = new Date().toISOString();
+    const proposal = proposalRes.rows[0];
 
-    // 4) Monta conteúdo + hash
+    // 4) Monta conteúdo e hash
     const buyerName = `Comprador #${deal.buyer_user_id}`;
     const sellerName = `Vendedor #${deal.seller_user_id}`;
+    const createdAt = new Date().toISOString();
 
     const draftContent = buildPropostaCompraContent({
-      proposalIdPlaceholder: "PENDENTE",
+      proposalId: proposal.id,
       dealId: deal.id,
       propertyId: deal.property_id,
       propertyTitle: property.title ?? `Imóvel #${deal.property_id}`,
       propertyAddress: property.address ?? "Endereço não informado",
       buyerName,
       sellerName,
-      offerPrice,
-      paymentTerms,
-      validUntil,
-      proposalHash: "PENDENTE",
+      offerPrice: price,
+      conditions,
       createdAt,
+      proposalHash: "PENDENTE",
     });
 
     const proposalHash = crypto
@@ -208,18 +191,17 @@ export async function POST(req: Request) {
       .digest("hex");
 
     const finalContent = buildPropostaCompraContent({
-      proposalIdPlaceholder: String(proposalId),
+      proposalId: proposal.id,
       dealId: deal.id,
       propertyId: deal.property_id,
       propertyTitle: property.title ?? `Imóvel #${deal.property_id}`,
       propertyAddress: property.address ?? "Endereço não informado",
       buyerName,
       sellerName,
-      offerPrice,
-      paymentTerms,
-      validUntil,
-      proposalHash,
+      offerPrice: price,
+      conditions,
       createdAt,
+      proposalHash,
     });
 
     // 5) Cria contrato da proposta
@@ -252,7 +234,7 @@ export async function POST(req: Request) {
 
     const contractId = contractRes.rows[0].id;
 
-    // 6) Partes do contrato
+    // 6) Registra partes do contrato
     await client.query(
       `
       INSERT INTO contract_party (contract_id, role, name)
@@ -264,7 +246,7 @@ export async function POST(req: Request) {
       [contractId, buyerName, sellerName]
     );
 
-    // 7) Evento do contrato
+    // 7) Registra evento
     await client.query(
       `
       INSERT INTO contract_event (contract_id, event_type, payload)
@@ -281,20 +263,20 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         ok: true,
-        proposalId,
+        proposalId: proposal.id,
         contractId,
         dealId: deal.id,
       },
       { status: 200 }
     );
-  } catch (e: any) {
+  } catch (error: any) {
     await client.query("ROLLBACK");
-    console.error("POST /api/proposals/create error:", e?.message || e);
+    console.error("Erro ao criar proposta:", error);
 
     return NextResponse.json(
       {
-        error: "Erro interno",
-        detail: e?.message || String(e),
+        error: "Erro ao criar proposta",
+        detail: error?.message || String(error),
       },
       { status: 500 }
     );
@@ -302,4 +284,7 @@ export async function POST(req: Request) {
     client.release();
   }
 }
+
+
+
 
