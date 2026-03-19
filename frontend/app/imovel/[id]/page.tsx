@@ -6,6 +6,8 @@ import pool from "@/lib/db";
 import InterestButton from "@/app/components/InterestButton";
 import ViewCertificateButton from "@/app/components/ViewCertificateButton";
 import TrustBadge from "@/app/components/TrustBadge";
+import TrustPanel from "@/app/components/TrustPanel";
+
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -140,16 +142,21 @@ export default async function ImovelPage({ params }: PageProps) {
   return (
     <main style={pageBg}>
       <div style={shell}>
-        <div style={topRow}>
-          <TrustBadge
-            score={imovel.score ?? undefined}
-            riskLevel={imovel.risk_level ?? undefined}
-          />
+        
+<div style={topRow}>
+  <TrustBadge
+    score={imovel.score ?? undefined}
+    riskLevel={imovel.risk_level ?? undefined}
+  />
 
-          <ViewCertificateButton
-            tokenReference={imovel.token_reference ?? null}
-          />
-        </div>
+  <TrustPanel
+    propertyId={imovel.id}
+  />
+
+  <ViewCertificateButton
+    tokenReference={imovel.token_reference ?? null}
+  />
+</div>
 
         <Link href="/marketplace" style={backLink}>
           ← Voltar
