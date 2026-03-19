@@ -28,11 +28,10 @@ export async function POST(
       status: string;
     }>(
       `
-      UPDATE proposals
-      SET status = 'REJECTED',
-          updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, deal_id, status
+UPDATE proposals
+SET status = 'REJECTED'
+WHERE id = $1
+RETURNING id, deal_id, status
       `,
       [proposalId]
     );
