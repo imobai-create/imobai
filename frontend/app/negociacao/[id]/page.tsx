@@ -176,14 +176,24 @@ const dealRes = await pool.query<DealRow>(`
           </div>
 
           <div style={actionsCol}>
-            <Link href={`/negociacao/${deal.id}/contrato`} style={btnPrimary}>
-              Ver / assinar contrato
-            </Link>
+  <Link
+    href={`/negociacao/${deal.id}/contrato/intermediacao`}
+    style={btnPrimary}
+  >
+    Ver contrato de intermediação
+  </Link>
 
-            <Link href="/#planos" style={btnSecondary}>
-              Planos
-            </Link>
-          </div>
+  <Link
+    href={`/negociacao/${deal.id}/contrato/proposta`}
+    style={btnSecondary}
+  >
+    Ver proposta
+  </Link>
+
+  <Link href="/#planos" style={btnSecondary}>
+    Planos
+  </Link>
+</div>
         </section>
 
        <section style={chatCard}>
