@@ -6,8 +6,20 @@ import NegotiationChat from "@/app/components/NegotiationChat";
 import OfferBox from "@/app/components/OfferBox";
 import IssueTrustTokenButton from '../../components/IssueTrustTokenButton';
 import TrustTokenCard from '../../components/TrustTokenCard'
+import ProposalActions from "@/app/components/ProposalActions";
+
 type PageProps = {
   params: Promise<{ id: string }>;
+};
+
+type ProposalRow = {
+  id: number;
+  deal_id: number;
+  user_id: number;
+  price: number | string;
+  conditions: string | null;
+  status: string;
+  created_at: string;
 };
 
 type DealRow = {
@@ -146,6 +158,27 @@ const dealRes = await pool.query<DealRow>(`
 
   const imovel = propertyRes.rows[0];
 
+
+const latestProposalRes = await pool.query<ProposalRow>(
+  `
+  SELECT
+    id,
+    deal_id,
+    user_id,
+    price,
+    conditions,
+    status,
+    created_at
+  FROM proposals
+  WHERE deal_id = $1
+  ORDER BY id DESC
+  LIMIT 1
+  `,
+  [dealId]
+);
+
+const latestProposal = latestProposalRes.rows[0] ?? null;
+
   return (
     <main style={pageBg}>
       <div style={shell}>
@@ -175,7 +208,8 @@ const dealRes = await pool.query<DealRow>(`
             </p>
           </div>
 
-          <div style={actionsCol}>
+         
+<div style={actionsCol}>
   <Link
     href={`/negociacao/${deal.id}/contrato/intermediacao`}
     style={btnPrimary}
@@ -194,6 +228,9 @@ const dealRes = await pool.query<DealRow>(`
     Planos
   </Link>
 </div>
+
+<ProposalActions proposal={latestProposal} />
+
         </section>
 
        <section style={chatCard}>
