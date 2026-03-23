@@ -103,25 +103,47 @@ export async function POST(
       );
     }
 
-    const promessaContent = `
+    
+const promessaContent = `
 PROMESSA DE COMPRA E VENDA IMOBAI
 
-Negociação #${proposal.deal_id}
+Negociação nº ${proposal.deal_id}
 
-Imóvel: ${deal.title}
-Endereço: ${deal.address}
+1. PARTES
+
+PROMITENTE COMPRADOR: Comprador #1  
+PROMITENTE VENDEDOR: Vendedor #1  
+
+2. OBJETO
+
+O presente instrumento tem por objeto a promessa de compra e venda do imóvel abaixo descrito:
+
+Imóvel: ${deal.title}  
+Endereço: ${deal.address}  
+
+3. VALOR E CONDIÇÕES
 
 Valor acordado: R$ ${Number(proposal.price).toLocaleString("pt-BR", {
   minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
 })}
+
 Condições: ${proposal.conditions || "Não informadas"}
 
-As partes concordam em formalizar a compra e venda do imóvel acima descrito,
-nos termos da proposta aceita digitalmente na plataforma IMOBAI.
+4. VINCULAÇÃO
 
-Este documento tem validade jurídica digital e servirá de base para o contrato definitivo.
+Esta promessa decorre da proposta formal realizada e aceita digitalmente na plataforma IMOBAI.
+
+5. VALIDADE DIGITAL
+
+As partes reconhecem a validade jurídica deste instrumento eletrônico, nos termos da legislação brasileira aplicável.
+
+6. PRÓXIMOS PASSOS
+
+Este documento servirá como base para formalização do contrato definitivo de compra e venda.
+
+IMOB.AI — Plataforma digital de negociação imobiliária segura.
 `.trim();
+
 
     const promessaRes = await client.query<{ id: number }>(
       `
