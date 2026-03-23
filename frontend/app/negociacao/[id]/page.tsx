@@ -1,5 +1,4 @@
 
-
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import pool from "@/lib/db";
@@ -154,45 +153,54 @@ export default async function NegociacaoPage({ params }: PageProps) {
 
   const latestProposal = latestProposalRes.rows[0] ?? null;
 
-  const intermediationRes = await pool.query<{ id: number; status: string }>(
-    `
-    SELECT id, status
-    FROM contract
-    WHERE deal_id = $1
-      AND type = 'INTERMEDIACAO_DIGITAL'
-    ORDER BY id DESC
-    LIMIT 1
-    `,
-    [dealId]
-  );
+  // Bloco protegido: se algo falhar aqui, a página continua abrindo
+  let intermediation: { id: number; status: string } | null = null;
+  let propostaContract: { id: number; status: string } | null = null;
+  let promessa: { id: number; status: string } | null = null;
 
-  const propostaContractRes = await pool.query<{ id: number; status: string }>(
-    `
-    SELECT id, status
-    FROM contract
-    WHERE deal_id = $1
-      AND type = 'PROPOSTA_COMPRA'
-    ORDER BY id DESC
-    LIMIT 1
-    `,
-    [dealId]
-  );
+  try {
+    const intermediationRes = await pool.query<{ id: number; status: string }>(
+      `
+      SELECT id, status
+      FROM contract
+      WHERE deal_id = $1
+        AND type = 'INTERMEDIACAO_DIGITAL'
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [dealId]
+    );
 
-  const promessaRes = await pool.query<{ id: number; status: string }>(
-    `
-    SELECT id, status
-    FROM contract
-    WHERE deal_id = $1
-      AND type = 'PROMESSA_COMPRA_VENDA'
-    ORDER BY id DESC
-    LIMIT 1
-    `,
-    [dealId]
-  );
+    const propostaContractRes = await pool.query<{ id: number; status: string }>(
+      `
+      SELECT id, status
+      FROM contract
+      WHERE deal_id = $1
+        AND type = 'PROPOSTA_COMPRA'
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [dealId]
+    );
 
-  const intermediation = intermediationRes.rows[0] ?? null;
-  const propostaContract = propostaContractRes.rows[0] ?? null;
-  const promessa = promessaRes.rows[0] ?? null;
+    const promessaRes = await pool.query<{ id: number; status: string }>(
+      `
+      SELECT id, status
+      FROM contract
+      WHERE deal_id = $1
+        AND type = 'PROMESSA_COMPRA_VENDA'
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [dealId]
+    );
+
+    intermediation = intermediationRes.rows[0] ?? null;
+    propostaContract = propostaContractRes.rows[0] ?? null;
+    promessa = promessaRes.rows[0] ?? null;
+  } catch (error) {
+    console.error("Erro ao carregar contratos da negociação:", error);
+  }
 
   const proposalAccepted = latestProposal?.status === "ACCEPTED";
   const promessaSigned =
@@ -535,6 +543,8 @@ const offerCard: CSSProperties = {
   background: "rgba(255,255,255,0.92)",
   border: "1px solid rgba(15,23,42,0.08)",
 };
+
+
 
 
 
