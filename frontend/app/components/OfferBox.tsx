@@ -35,10 +35,12 @@ export default function OfferBox({ dealId, buyerId }: Props) {
       alert("Erro ao enviar proposta")
       return
     }
+ 
+alert("Proposta enviada");
+window.location.reload();
+setPrice("");
+setConditions("");
 
-    alert("Proposta enviada")
-    setPrice("")
-    setConditions("")
   }
 
   return (

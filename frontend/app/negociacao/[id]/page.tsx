@@ -171,7 +171,7 @@ const latestProposalRes = await pool.query<ProposalRow>(
     created_at
   FROM proposals
   WHERE deal_id = $1
-  ORDER BY id DESC
+  ORDER BY created_at DESC, id DESC
   LIMIT 1
   `,
   [dealId]
