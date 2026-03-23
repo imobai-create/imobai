@@ -8,6 +8,7 @@ import IssueTrustTokenButton from '../../components/IssueTrustTokenButton';
 import TrustTokenCard from '../../components/TrustTokenCard'
 import ProposalActions from "@/app/components/ProposalActions";
 
+
 type PageProps = {
   params: Promise<{ id: string }>;
 };

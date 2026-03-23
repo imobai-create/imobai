@@ -2,53 +2,71 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function POST(req: Request) {
+  const client = await pool.connect();
+
   try {
     const body = await req.json();
-    const dealId = Number(body.dealId);
-    const role = String(body.role ?? "");
+    const contractId = Number(body.contractId);
 
-    if (!Number.isFinite(dealId) || (role !== "buyer" && role !== "seller")) {
-      return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
-    }
-
-    if (role === "buyer") {
-      await pool.query(
-        `UPDATE deal_contract SET buyer_signed = true WHERE deal_id = $1`,
-        [dealId]
-      );
-    } else {
-      await pool.query(
-        `UPDATE deal_contract SET seller_signed = true WHERE deal_id = $1`,
-        [dealId]
+    if (!Number.isFinite(contractId)) {
+      return NextResponse.json(
+        { error: "contractId inválido" },
+        { status: 400 }
       );
     }
 
-    // se ambos assinados -> signed=true, signed_at=now
-    await pool.query(
+    await client.query("BEGIN");
+
+    const contractRes = await client.query<{
+      id: number;
+      type: string;
+      status: string;
+    }>(
       `
-      UPDATE deal_contract
-      SET signed = (buyer_signed AND seller_signed),
-          signed_at = CASE WHEN (buyer_signed AND seller_signed) THEN NOW() ELSE signed_at END
-      WHERE deal_id = $1
+      UPDATE contract
+      SET status = 'SIGNED',
+          signed_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING id, type, status
       `,
-      [dealId]
+      [contractId]
     );
 
-    const { rows } = await pool.query(
-      `SELECT deal_id, signed, signed_at, buyer_signed, seller_signed, contract_hash FROM deal_contract WHERE deal_id=$1`,
-      [dealId]
+    const contract = contractRes.rows[0];
+
+    if (!contract) {
+      await client.query("ROLLBACK");
+      return NextResponse.json(
+        { error: "Contrato não encontrado" },
+        { status: 404 }
+      );
+    }
+
+    await client.query(
+      `
+      INSERT INTO contract_event (contract_id, event_type, payload)
+      VALUES ($1, 'SIGNED', $2)
+      `,
+      [contract.id, `Contrato ${contract.type} assinado na plataforma IMOBAI.`]
     );
 
-    return NextResponse.json(rows[0] ?? { ok: true });
-  } catch (e) {
-    console.error("/api/contract/sign error:", e);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    await client.query("COMMIT");
+
+    return NextResponse.json(
+      { ok: true, contractId: contract.id, status: contract.status },
+      { status: 200 }
+    );
+  } catch (e: any) {
+    await client.query("ROLLBACK");
+    console.error("POST /api/contract/sign error:", e?.message || e);
+
+    return NextResponse.json(
+      { error: "Erro interno", detail: e?.message || String(e) },
+      { status: 500 }
+    );
+  } finally {
+    client.release();
   }
 }
-
-
-
-
-
-
 
