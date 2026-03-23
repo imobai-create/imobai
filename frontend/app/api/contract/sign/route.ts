@@ -1,3 +1,6 @@
+
+
+
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
@@ -7,6 +10,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const contractId = Number(body.contractId);
+    const userId = Number(body.userId || 1);
 
     if (!Number.isFinite(contractId)) {
       return NextResponse.json(
@@ -48,7 +52,7 @@ export async function POST(req: Request) {
       INSERT INTO contract_event (contract_id, event_type, payload)
       VALUES ($1, 'SIGNED', $2)
       `,
-      [contract.id, `Contrato ${contract.type} assinado na plataforma IMOBAI.`]
+      [contract.id, `Assinado por usuário ${userId}`]
     );
 
     await client.query("COMMIT");

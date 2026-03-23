@@ -1,6 +1,11 @@
 
 
 
+
+
+
+
+
 import pool from "@/lib/db";
 import Link from "next/link";
 import SignContractButton from "@/app/components/SignContractButton";
@@ -40,6 +45,22 @@ export default async function PromessaPage({ params }: PageProps) {
     );
   }
 
+  const eventsRes = await pool.query<{
+    event_type: string;
+    payload: string;
+    created_at: string;
+  }>(
+    `
+    SELECT event_type, payload, created_at
+    FROM contract_event
+    WHERE contract_id = $1
+    ORDER BY id DESC
+    `,
+    [contract.id]
+  );
+
+  const signEvent = eventsRes.rows.find((e) => e.event_type === "SIGNED");
+
   return (
     <main style={{ padding: 40 }}>
       <Link href={`/negociacao/${dealId}`}>← Voltar</Link>
@@ -49,6 +70,14 @@ export default async function PromessaPage({ params }: PageProps) {
       <div style={{ marginTop: 12, color: "#475569", fontWeight: 600 }}>
         Status: {contract.status}
       </div>
+
+      {signEvent && (
+        <div style={{ marginTop: 12, color: "#334155" }}>
+          Assinado em: {new Date(signEvent.created_at).toLocaleString("pt-BR")}
+          <br />
+          {signEvent.payload}
+        </div>
+      )}
 
       {contract.status !== "SIGNED" ? (
         <SignContractButton contractId={contract.id} />
@@ -74,5 +103,3 @@ export default async function PromessaPage({ params }: PageProps) {
     </main>
   );
 }
-
-
