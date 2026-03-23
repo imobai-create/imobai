@@ -1,14 +1,17 @@
 
 
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import pool from "@/lib/db";
 import NegotiationChat from "@/app/components/NegotiationChat";
 import OfferBox from "@/app/components/OfferBox";
-import IssueTrustTokenButton from '../../components/IssueTrustTokenButton';
-import TrustTokenCard from '../../components/TrustTokenCard'
+import IssueTrustTokenButton from "@/app/components/IssueTrustTokenButton";
+import TrustTokenCard from "@/app/components/TrustTokenCard";
 import ProposalActions from "@/app/components/ProposalActions";
 import NegotiationTimeline from "@/app/components/NegotiationTimeline";
 
+void IssueTrustTokenButton;
+void TrustTokenCard;
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -17,8 +20,6 @@ type PageProps = {
 type DealRow = {
   id: number;
   property_id: number;
-  buyer_id: number | null;
-  seller_id: number | null;
   price: number;
   status: string;
   created_at: string;
@@ -81,8 +82,6 @@ export default async function NegociacaoPage({ params }: PageProps) {
     SELECT
       id,
       property_id,
-      buyer_id,
-      seller_id,
       price,
       status,
       created_at
@@ -336,46 +335,39 @@ export default async function NegociacaoPage({ params }: PageProps) {
             pela IMOBAI com proteção da transação. O valor ficará seguro na
             plataforma até a etapa correta da negociação.
           </p>
+
           <div style={paymentBox}>
             <div>✔ Seu dinheiro fica protegido</div>
             <div>✔ Ninguém recebe antes da hora</div>
-            <div>✔ Tudo ficará registrado na plataforma</div>
+            <div>✔ Tudo fica registrado na plataforma</div>
           </div>
         </section>
 
         <section style={chatCard}>
           <h2 style={sectionTitle}>Chat da negociação</h2>
-          <NegotiationChat
-  dealId={deal.id}
-  buyerId={deal.buyer_id ?? 1}
-  sellerId={deal.seller_id ?? 1}
-/>
+          <NegotiationChat dealId={deal.id} buyerId={1} sellerId={1} />
         </section>
 
         <section style={offerCard}>
-          <OfferBox
-            dealId={deal.id}
-            buyerId={deal.buyer_id ?? 1}
-            sellerId={deal.seller_id ?? 1}
-          />
+          <OfferBox dealId={deal.id} buyerId={1} sellerId={1} />
         </section>
       </div>
     </main>
   );
 }
 
-const pageBg: React.CSSProperties = {
+const pageBg: CSSProperties = {
   minHeight: "100vh",
   background: "#eef2f5",
   padding: "32px 20px 60px",
 };
 
-const shell: React.CSSProperties = {
+const shell: CSSProperties = {
   maxWidth: 1180,
   margin: "0 auto",
 };
 
-const backLink: React.CSSProperties = {
+const backLink: CSSProperties = {
   display: "inline-flex",
   textDecoration: "none",
   color: "#111827",
@@ -383,7 +375,7 @@ const backLink: React.CSSProperties = {
   marginBottom: 18,
 };
 
-const heroCard: React.CSSProperties = {
+const heroCard: CSSProperties = {
   display: "flex",
   gap: 24,
   justifyContent: "space-between",
@@ -395,14 +387,14 @@ const heroCard: React.CSSProperties = {
   border: "1px solid rgba(15,23,42,0.08)",
 };
 
-const card: React.CSSProperties = {
+const card: CSSProperties = {
   padding: 28,
   borderRadius: 24,
   background: "rgba(255,255,255,0.92)",
   border: "1px solid rgba(15,23,42,0.08)",
 };
 
-const pill: React.CSSProperties = {
+const pill: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   minHeight: 38,
@@ -415,7 +407,7 @@ const pill: React.CSSProperties = {
   fontSize: 14,
 };
 
-const h1: React.CSSProperties = {
+const h1: CSSProperties = {
   margin: "18px 0 10px",
   fontSize: 68,
   lineHeight: 1,
@@ -423,7 +415,7 @@ const h1: React.CSSProperties = {
   color: "#0f172a",
 };
 
-const titleStyle: React.CSSProperties = {
+const titleStyle: CSSProperties = {
   margin: "0 0 8px",
   fontSize: 30,
   lineHeight: 1.1,
@@ -431,13 +423,13 @@ const titleStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
-const addressStyle: React.CSSProperties = {
+const addressStyle: CSSProperties = {
   margin: 0,
   color: "#475569",
   fontSize: 20,
 };
 
-const priceStyle: React.CSSProperties = {
+const priceStyle: CSSProperties = {
   marginTop: 22,
   fontSize: 74,
   lineHeight: 1,
@@ -445,21 +437,21 @@ const priceStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
-const muted: React.CSSProperties = {
+const muted: CSSProperties = {
   marginTop: 18,
   color: "#64748b",
   fontSize: 15,
   lineHeight: 1.6,
 };
 
-const actionsCol: React.CSSProperties = {
+const actionsCol: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 12,
   minWidth: 280,
 };
 
-const btnPrimary: React.CSSProperties = {
+const btnPrimary: CSSProperties = {
   display: "inline-flex",
   justifyContent: "center",
   alignItems: "center",
@@ -472,7 +464,7 @@ const btnPrimary: React.CSSProperties = {
   fontWeight: 700,
 };
 
-const btnSecondary: React.CSSProperties = {
+const btnSecondary: CSSProperties = {
   display: "inline-flex",
   justifyContent: "center",
   alignItems: "center",
@@ -486,14 +478,14 @@ const btnSecondary: React.CSSProperties = {
   fontWeight: 700,
 };
 
-const sectionTitle: React.CSSProperties = {
+const sectionTitle: CSSProperties = {
   margin: 0,
   fontSize: 22,
   fontWeight: 800,
   color: "#0f172a",
 };
 
-const proposalCard: React.CSSProperties = {
+const proposalCard: CSSProperties = {
   marginTop: 22,
   padding: 24,
   borderRadius: 20,
@@ -501,14 +493,14 @@ const proposalCard: React.CSSProperties = {
   border: "1px solid rgba(15,23,42,0.08)",
 };
 
-const proposalLine: React.CSSProperties = {
+const proposalLine: CSSProperties = {
   marginTop: 12,
   color: "#111827",
   fontSize: 15,
   lineHeight: 1.6,
 };
 
-const paymentCard: React.CSSProperties = {
+const paymentCard: CSSProperties = {
   marginTop: 22,
   padding: 24,
   borderRadius: 20,
@@ -516,7 +508,7 @@ const paymentCard: React.CSSProperties = {
   border: "1px solid rgba(15,23,42,0.08)",
 };
 
-const paymentBox: React.CSSProperties = {
+const paymentBox: CSSProperties = {
   marginTop: 16,
   display: "grid",
   gap: 10,
@@ -528,7 +520,7 @@ const paymentBox: React.CSSProperties = {
   fontWeight: 600,
 };
 
-const chatCard: React.CSSProperties = {
+const chatCard: CSSProperties = {
   marginTop: 22,
   padding: 24,
   borderRadius: 20,
@@ -536,12 +528,23 @@ const chatCard: React.CSSProperties = {
   border: "1px solid rgba(15,23,42,0.08)",
 };
 
-const offerCard: React.CSSProperties = {
+const offerCard: CSSProperties = {
   marginTop: 22,
   padding: 24,
   borderRadius: 20,
   background: "rgba(255,255,255,0.92)",
   border: "1px solid rgba(15,23,42,0.08)",
 };
+
+
+
+
+
+
+
+
+
+
+
 
 
