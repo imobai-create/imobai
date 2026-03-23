@@ -231,6 +231,24 @@ const latestProposal = latestProposalRes.rows[0] ?? null;
 
 <ProposalActions proposal={latestProposal} />
 
+{latestProposal?.status === "ACCEPTED" && (
+  <Link
+    href={`/negociacao/${deal.id}/contrato/promessa`}
+    style={{
+      marginTop: 12,
+      display: "inline-block",
+      padding: "10px 16px",
+      background: "#111",
+      color: "#fff",
+      borderRadius: 8,
+      textDecoration: "none",
+      fontWeight: 600,
+    }}
+  >
+    Ver promessa de compra e venda
+  </Link>
+)}
+
         </section>
 
        <section style={chatCard}>
